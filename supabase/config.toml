@@ -1,0 +1,4 @@
+project_id = "rpcvvsphniyounrpllzk"
+[functions.football-api]
+verify_jwt = false
+# The function authenticates custom device tokens and expiring administrator sessions.

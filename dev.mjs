@@ -1,0 +1,3 @@
+import http from 'node:http';import fs from 'node:fs';import path from 'node:path';
+const arg=process.argv.indexOf('--port');const port=Number(arg>=0?process.argv[arg+1]:process.env.PORT||4173);
+http.createServer((req,res)=>{const p=new URL(req.url,'http://localhost').pathname;const file=p.startsWith('/assets/')?path.join(process.cwd(),p):path.join(process.cwd(),'index.html');if(!file.startsWith(process.cwd()+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return}res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file))}).listen(port,'0.0.0.0',()=>console.log('Local: http://0.0.0.0:'+port));

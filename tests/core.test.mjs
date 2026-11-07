@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {mutate,project,balance,hash,passwordHash} from '../supabase/functions/football-api/core.ts';
+let count=0;for(let a=0;a<=20;a++)for(let b=0;b<=20-a;b++){const p=Array.from({length:20},(_,i)=>({id:String(i),name:'P '+i,level:i<a?1:i<a+b?2:3}));const t=balance(p);assert(t.every(x=>x.length===5));assert.equal(new Set(t.flat()).size,20);for(let l=1;l<=3;l++){const n=t.map(x=>x.filter(id=>p[+id].level===l).length);assert(Math.max(...n)-Math.min(...n)<=1)}count++}
+const s={players:[],game:{id:'g',date:'2026-11-11',time:'',place:'',open:true,queue:[],teams:null},history:[],accounts:[{id:'owner',name:'admin',owner:true,salt:'test-salt',hash:await passwordHash('test-password','test-salt')}],sessions:[],attempts:{}};
+const login=await mutate(s,{action:'login',username:'admin',password:'test-password'},'','','ip');const admin=await hash(login.token);
+for(let i=0;i<22;i++){await mutate(s,{action:'profile',name:'Player '+i},'d'+i,'','ip');await mutate(s,{action:'join',gameId:'g'},'d'+i,'','ip');await mutate(s,{action:'join',gameId:'g'},'d'+i,'','ip')}
+assert.equal(s.game.queue.length,22);const first=s.game.queue[20];await mutate(s,{action:'cancel',gameId:'g'},'d0','','ip');assert.equal(s.game.queue[19],first);
+await assert.rejects(()=>mutate(s,{action:'cancel',gameId:'g',id:s.players[2].id},'d1','','ip'));await assert.rejects(()=>mutate(s,{action:'rate',id:s.players[1].id,level:1},'d1','','ip'));
+assert(project(s,'d1','').players.every(p=>!('level'in p)&&!('uid'in p)));assert(project(s,'d1',admin).admin);
+await mutate(s,{action:'manager',username:'helper',password:'test-pass'},'owner',admin,'ip');const m=await mutate(s,{action:'login',username:'helper',password:'test-pass'},'','','ip2');const mh=await hash(m.token);assert(project(s,'',mh).admin);assert(!project(s,'',mh).owner);await mutate(s,{action:'removeManager',id:s.accounts[1].id},'owner',admin,'ip');assert(!project(s,'',mh).admin);
+for(let i=0;i<8;i++)assert.equal((await mutate(s,{action:'login',username:'none',password:'bad'},'','','bad-ip')).status,401);assert.equal((await mutate(s,{action:'login',username:'admin',password:'test-password'},'','','bad-ip')).status,429);
+await mutate(s,{action:'logout'},'x',admin,'ip');assert(!project(s,'',admin).admin);
+console.log('PASS: '+count+' distributions; FIFO; duplicate protection; access control; privacy; manager revocation; rate limits; logout');
