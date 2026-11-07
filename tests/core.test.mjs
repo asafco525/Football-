@@ -28,5 +28,12 @@ await mutate(w,{action:'addWeekly',gameId:'g',name:'Weekly New'},'owner',admin,'
 await mutate(w,{action:'cancel',gameId:'g',id:w.game.queue[0]},'owner',admin,'ip');assert.equal(w.game.queue[19],added.id);assert(w.players.some(p=>p.id===s.players[0].id));
 await mutate(w,{action:'cancel',gameId:'g',id:added.id},'owner',admin,'ip');assert(!w.game.queue.includes(added.id));assert(w.players.some(p=>p.id===added.id));
 console.log('PASS: weekly admin add/remove, permissions, stale game, duplicates, promotion, preserved players');
+const beforeRoster=JSON.stringify(w.game.queue);
+await assert.rejects(()=>mutate(w,{action:'location',gameId:'g',place:'גולטיים'},'visitor','','ip'));
+await assert.rejects(()=>mutate(w,{action:'location',gameId:'old',place:'גולטיים'},'owner',admin,'ip'));
+await assert.rejects(()=>mutate(w,{action:'location',gameId:'g',place:'invalid'},'owner',admin,'ip'));
+for(const place of ['גולטיים','דריבל']){await mutate(w,{action:'location',gameId:'g',place},'owner',admin,'ip');assert.equal(project(w,'','').game.place,place);}
+assert.equal(JSON.stringify(w.game.queue),beforeRoster);
+console.log('PASS: venue updates, public visibility, authorization and roster preservation');
 await mutate(s,{action:'logout'},'x',admin,'ip');assert(!project(s,'',admin).admin);
 console.log('PASS: '+count+' distributions; FIFO; duplicate protection; access control; privacy; manager revocation; rate limits; logout');
