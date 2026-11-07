@@ -5,3 +5,5 @@
 
 /* Red and white club colors; team kit colors stay distinct. */
 :root{color:#321c1c;background:#fffafa}.primary{background:#b91c1c}.primary:hover:not(:disabled){background:#991b1b}.match{background:#a71922}.progress i,.pill i{background:#fff}.pill,.details,.match-bottom,.match-bottom strong{color:#fff}h1 span{color:#c5222e}.text-button{color:#a32630}.manage-row small{color:#775d5d}
+
+.admin-actions{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}.swap-form{border:1px solid #eadada;border-radius:12px;padding:16px;margin-top:20px}.share-text{width:100%;min-height:300px;font:inherit;line-height:1.7;padding:12px;border:1px solid #d9caca;border-radius:8px;resize:vertical}.payment-link>div{width:100%}.payment-link a{margin-top:12px}

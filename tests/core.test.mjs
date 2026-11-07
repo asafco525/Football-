@@ -42,5 +42,27 @@ for(const time of ['24:00','12:60','','9:30',null])await assert.rejects(()=>muta
 for(const time of ['00:00','21:30','23:59']){await mutate(w,{action:'time',gameId:'g',time},'owner',admin,'ip');assert.equal(project(w,'','').game.time,time);}
 assert.deepEqual({...w.game,time:beforeTime.time},beforeTime);
 console.log('PASS: time validation, authorization, stale game and preserved roster/teams');
+const x=structuredClone(s);x.game.queue=x.players.slice(0,20).map(p=>p.id);x.players.forEach(p=>{p.level=2});
+const act=(action,body={},auth=admin)=>mutate(x,{action,gameId:x.game.id,...body},'owner',auth,'ip');
+await act('paymentSettings',{price:'35.50',bitUrl:'https://www.bitpay.co.il/example'});
+assert.equal(project(x,'','').game.price,35.5);assert.equal(project(x,'','').game.bitUrl,'https://www.bitpay.co.il/example');
+await act('paid',{id:x.game.queue[0],paid:true});assert(project(x,'',admin).game.paid[x.game.queue[0]]);assert(!('paid' in project(x,'','').game));
+await assert.rejects(()=>act('paymentSettings',{price:30,bitUrl:'javascript:alert(1)'}));
+await assert.rejects(()=>act('paymentSettings',{price:'not-a-number'}));
+await assert.rejects(()=>act('paid',{id:x.game.queue[0],paid:true},''));
+await assert.rejects(()=>act('paymentSettings',{price:30},''));
+await act('balance');assert.equal(project(x,'','').game.teams,null);assert(project(x,'',admin).game.teams);
+let expectedTeams=structuredClone(x.game.teams);
+await assert.rejects(()=>act('publishTeams',{expectedTeams},''));
+await act('publishTeams',{expectedTeams});assert.deepEqual(project(x,'','').game.teams,expectedTeams);
+await assert.rejects(()=>act('swap',{first:expectedTeams[0][0],second:expectedTeams[0][1],expectedTeams}));
+await assert.rejects(()=>act('swap',{first:expectedTeams[0][0],second:expectedTeams[1][0],expectedTeams},''));
+await act('swap',{first:expectedTeams[0][0],second:expectedTeams[1][0],expectedTeams});assert.equal(project(x,'','').game.teams,null);assert.equal(x.game.teams[0][0],expectedTeams[1][0]);assert(x.game.teams.every(t=>t.length===5));assert.equal(new Set(x.game.teams.flat()).size,20);
+await assert.rejects(()=>act('publishTeams',{expectedTeams}));
+await act('publishTeams',{expectedTeams:x.game.teams});await act('hideTeams',{expectedTeams:x.game.teams});assert.equal(project(x,'','').game.teams,null);
+await act('publishTeams',{expectedTeams:x.game.teams});const paidId=x.game.queue[0];await act('cancel',{id:paidId});assert.equal(project(x,'','').game.teams,null);assert(x.game.paid[paidId]);
+await act('paid',{id:paidId,paid:false});assert(!x.game.paid[paidId]);
+await act('create',{date:'2026-12-01',time:'20:00',place:'דריבל'});assert.equal(Object.keys(project(x,'',admin).game.paid).length,0);assert.equal(project(x,'','').game.teams,null);
+console.log('PASS: payment privacy/validation, manual confirmations, canceled payments, new game reset, draft privacy, publishing, swaps, stale edits and roster invalidation');
 await mutate(s,{action:'logout'},'x',admin,'ip');assert(!project(s,'',admin).admin);
 console.log('PASS: '+count+' distributions; FIFO; duplicate protection; access control; privacy; manager revocation; rate limits; logout');
