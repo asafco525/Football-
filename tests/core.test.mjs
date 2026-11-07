@@ -9,5 +9,14 @@ await assert.rejects(()=>mutate(s,{action:'cancel',gameId:'g',id:s.players[2].id
 assert(project(s,'d1','').players.every(p=>!('level'in p)&&!('uid'in p)));assert(project(s,'d1',admin).admin);
 await mutate(s,{action:'manager',username:'helper',password:'test-pass'},'owner',admin,'ip');const m=await mutate(s,{action:'login',username:'helper',password:'test-pass'},'','','ip2');const mh=await hash(m.token);assert(project(s,'',mh).admin);assert(!project(s,'',mh).owner);await mutate(s,{action:'removeManager',id:s.accounts[1].id},'owner',admin,'ip');assert(!project(s,'',mh).admin);
 for(let i=0;i<8;i++)assert.equal((await mutate(s,{action:'login',username:'none',password:'bad'},'','','bad-ip')).status,401);assert.equal((await mutate(s,{action:'login',username:'admin',password:'test-password'},'','','bad-ip')).status,429);
+await mutate(s,{action:'add',name:'Unknown Player',level:'unknown'},'owner',admin,'ip');
+const u=s.players.at(-1);assert.equal(u.level,2);assert.equal(u.unknownLevel,true);
+assert.equal(project(s,'',admin).players.at(-1).unknownLevel,true);
+assert(!('unknownLevel' in project(s,'','').players.at(-1)));
+await assert.rejects(()=>mutate(s,{action:'rate',id:u.id,level:'unknown'},'d1','','ip'));
+const mixed=Array.from({length:20},(_,i)=>({id:String(i),name:'P '+i,level:2,unknownLevel:i%2===0}));
+assert(balance(mixed).every(t=>t.length===5));
+await mutate(s,{action:'rate',id:u.id,level:1},'owner',admin,'ip');assert.equal(u.level,1);assert.equal(u.unknownLevel,false);
+await mutate(s,{action:'rate',id:u.id,level:'unknown'},'owner',admin,'ip');assert.equal(u.level,2);assert.equal(u.unknownLevel,true);
 await mutate(s,{action:'logout'},'x',admin,'ip');assert(!project(s,'',admin).admin);
 console.log('PASS: '+count+' distributions; FIFO; duplicate protection; access control; privacy; manager revocation; rate limits; logout');
