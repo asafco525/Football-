@@ -35,5 +35,12 @@ await assert.rejects(()=>mutate(w,{action:'location',gameId:'g',place:'invalid'}
 for(const place of ['גולטיים','דריבל']){await mutate(w,{action:'location',gameId:'g',place},'owner',admin,'ip');assert.equal(project(w,'','').game.place,place);}
 assert.equal(JSON.stringify(w.game.queue),beforeRoster);
 console.log('PASS: venue updates, public visibility, authorization and roster preservation');
+const beforeTime=structuredClone(w.game);
+await assert.rejects(()=>mutate(w,{action:'time',gameId:'g',time:'21:30'},'visitor','','ip'));
+await assert.rejects(()=>mutate(w,{action:'time',gameId:'old',time:'21:30'},'owner',admin,'ip'));
+for(const time of ['24:00','12:60','','9:30',null])await assert.rejects(()=>mutate(w,{action:'time',gameId:'g',time},'owner',admin,'ip'));
+for(const time of ['00:00','21:30','23:59']){await mutate(w,{action:'time',gameId:'g',time},'owner',admin,'ip');assert.equal(project(w,'','').game.time,time);}
+assert.deepEqual({...w.game,time:beforeTime.time},beforeTime);
+console.log('PASS: time validation, authorization, stale game and preserved roster/teams');
 await mutate(s,{action:'logout'},'x',admin,'ip');assert(!project(s,'',admin).admin);
 console.log('PASS: '+count+' distributions; FIFO; duplicate protection; access control; privacy; manager revocation; rate limits; logout');
