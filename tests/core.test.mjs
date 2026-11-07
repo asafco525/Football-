@@ -18,5 +18,15 @@ const mixed=Array.from({length:20},(_,i)=>({id:String(i),name:'P '+i,level:2,unk
 assert(balance(mixed).every(t=>t.length===5));
 await mutate(s,{action:'rate',id:u.id,level:1},'owner',admin,'ip');assert.equal(u.level,1);assert.equal(u.unknownLevel,false);
 await mutate(s,{action:'rate',id:u.id,level:'unknown'},'owner',admin,'ip');assert.equal(u.level,2);assert.equal(u.unknownLevel,true);
+const w=structuredClone(s);w.game.queue=[];w.game.open=false;
+await assert.rejects(()=>mutate(w,{action:'addWeekly',gameId:'g',id:w.players[0].id},'visitor','','ip'));
+await assert.rejects(()=>mutate(w,{action:'addWeekly',gameId:'old',id:w.players[0].id},'owner',admin,'ip'));
+for(const p of w.players.slice(0,20))await mutate(w,{action:'addWeekly',gameId:'g',id:p.id},'owner',admin,'ip');
+await mutate(w,{action:'addWeekly',gameId:'g',name:'Weekly New'},'owner',admin,'ip');const added=w.players.at(-1);
+assert.equal(added.level,2);assert(added.unknownLevel);assert.equal(w.game.queue[20],added.id);
+await mutate(w,{action:'addWeekly',gameId:'g',name:'Weekly New'},'owner',admin,'ip');assert.equal(w.game.queue.length,21);
+await mutate(w,{action:'cancel',gameId:'g',id:w.game.queue[0]},'owner',admin,'ip');assert.equal(w.game.queue[19],added.id);assert(w.players.some(p=>p.id===s.players[0].id));
+await mutate(w,{action:'cancel',gameId:'g',id:added.id},'owner',admin,'ip');assert(!w.game.queue.includes(added.id));assert(w.players.some(p=>p.id===added.id));
+console.log('PASS: weekly admin add/remove, permissions, stale game, duplicates, promotion, preserved players');
 await mutate(s,{action:'logout'},'x',admin,'ip');assert(!project(s,'',admin).admin);
 console.log('PASS: '+count+' distributions; FIFO; duplicate protection; access control; privacy; manager revocation; rate limits; logout');

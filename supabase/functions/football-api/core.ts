@@ -27,9 +27,18 @@ export async function mutate(s:State,b:any,device:string,adminHash:string,ipHash
  }
  if(b.action==='logout'){s.sessions=s.sessions.filter(x=>x.hash!==adminHash);return {logout:true}}
  if(!device)throw Error('לא ניתן לזהות את המכשיר. אפשר שמירה בדפדפן ונסה שוב');
- if(['join','cancel','toggle','balance'].includes(b.action)&&b.gameId!==s.game?.id)throw Error('המשחק השתנה. רענן את הרשימה ונסה שוב');
+ if(['join','addWeekly','cancel','toggle','balance'].includes(b.action)&&b.gameId!==s.game?.id)throw Error('המשחק השתנה. רענן את הרשימה ונסה שוב');
  if(b.action==='profile'){const name=clean(b.name);if(name.length<3||!name.includes(' '))throw Error('יש להזין שם פרטי ומשפחה');let p=s.players.find(p=>p.uid===device);const existing=s.players.find(x=>x.name.toLocaleLowerCase()===name.toLocaleLowerCase()&&x.id!==p?.id);if(existing&&existing.id!==p?.id&&existing.uid)throw Error('השם כבר בשימוש. אם החלפת מכשיר, פנה למנהל לשחרור החיבור');if(!p&&existing){existing.uid=device;}else if(!p)s.players.push({id:crypto.randomUUID(),name,uid:device,level:null});else {if(existing&&existing.id!==p.id)throw Error('השם קיים במאגר');p.name=name;}}
  else if(b.action==='join'){const p=s.players.find(p=>p.uid===device);if(!p)throw Error('קודם יש לשמור את השם שלך');if(!s.game?.open)throw Error('ההרשמה סגורה');if(!s.game.queue.includes(p.id)){s.game.queue.push(p.id);if(s.game.queue.length<=20)s.game.teams=null;}}
+ else if(b.action==='addWeekly'){
+ needAdmin();if(!s.game)throw Error('יש לפתוח משחק לפני הוספת שחקנים');
+ let p:Player|undefined;
+ if(b.id){p=s.players.find(x=>x.id===b.id);if(!p)throw Error('השחקן לא נמצא במאגר');}
+ else {const name=clean(b.name);if(name.length<3||!name.includes(' '))throw Error('יש להזין שם פרטי ומשפחה');
+ p=s.players.find(x=>x.name.toLocaleLowerCase()===name.toLocaleLowerCase());
+ if(!p){p={id:crypto.randomUUID(),name,level:2,unknownLevel:true};s.players.push(p);}}
+ if(!s.game.queue.includes(p.id)){s.game.queue.push(p.id);if(s.game.queue.length<=20)s.game.teams=null;}
+ }
  else if(b.action==='cancel'){const p=s.players.find(p=>p.uid===device);const id=admin&&b.id?b.id:p?.id;if(!id)throw Error('לא נמצאה הרשמה');if(!admin&&b.id&&b.id!==id)throw Error('אפשר לבטל רק את ההרשמה שלך');if(s.game){if(s.game.queue.slice(0,20).includes(id))s.game.teams=null;s.game.queue=s.game.queue.filter(x=>x!==id);}}
  else if(b.action==='create'){needAdmin();if(!/^\d{4}-\d{2}-\d{2}$/.test(b.date)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(b.time)||!clean(b.place)||Number.isNaN(Date.parse(b.date)))throw Error('יש למלא תאריך, שעה ומיקום');if(s.game)s.history.push(s.game);s.game={id:crypto.randomUUID(),date:b.date,time:b.time,place:clean(b.place),open:true,queue:[],teams:null};}
  else if(b.action==='toggle'){needAdmin();if(s.game)s.game.open=!s.game.open;}
