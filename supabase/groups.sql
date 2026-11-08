@@ -1,3 +1,4 @@
+alter table public.football_club add column if not exists owner_email text unique;
 create table if not exists public.football_groups (
  id uuid primary key,
  name text not null check(char_length(name) between 2 and 60),

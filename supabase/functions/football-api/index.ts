@@ -20,7 +20,9 @@ export async function handler(req:Request){
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>60)return reply({error:'יש להזין כתובת אימייל תקינה (עד 60 תווים)'},400);
  const limiter=await fetch(root+'rpc/football_signup_allowed',{method:'POST',headers,body:JSON.stringify({ip_key:ipHash})});
  if(!limiter.ok)throw Error('Rate limiter unavailable');if(!await limiter.json())return reply({error:'יותר מדי ניסיונות. נסה שוב בעוד שעה'},429);
+ const legacyLookup=await fetch(root+'football_club?owner_email=eq.'+encodeURIComponent(email)+'&select=id',{headers});if(!legacyLookup.ok)throw Error('Lookup failed');const legacyOwner=(await legacyLookup.json())[0];
  if(action==='signup'){
+ if(legacyOwner)return reply({error:'האימייל כבר משויך לקבוצה. עבור לכניסת מנהל ראשי'},409);
  const name=typeof b.name==='string'?b.name.trim().replace(/\s+/g,' '):'';
  if(name.length<2||name.length>60||typeof b.password!=='string'||b.password.length<10||b.password.length>128)return reply({error:'יש להזין שם קבוצה וסיסמה של 10–128 תווים'},400);
  group=crypto.randomUUID();const salt=crypto.randomUUID(),token=crypto.randomUUID()+crypto.randomUUID(),id=crypto.randomUUID();
@@ -30,8 +32,8 @@ export async function handler(req:Request){
  if(!insert.ok)throw Error('Create failed');return reply({group,groupName:name,token});
  }
  const lookup=await fetch(root+'football_groups?owner_email=eq.'+encodeURIComponent(email)+'&select=id',{headers});if(!lookup.ok)throw Error('Lookup failed');const found=await lookup.json();
- if(!found[0])return reply({error:'האימייל או הסיסמה שגויים'},401);
- group=found[0].id;action='login';b.username=email;
+ if(!found[0]&&!legacyOwner)return reply({error:'האימייל או הסיסמה שגויים'},401);
+ group=legacyOwner?'asaf':found[0].id;action='login';b.username=email;
  }
  if(group!=='asaf'&&(typeof group!=='string'||!uuid.test(group)))return reply({error:'קישור הקבוצה אינו תקין'},400);
  const legacy=group==='asaf',base=root+(legacy?'football_club':'football_groups'),filter=legacy?'id=eq.1':'id=eq.'+group;

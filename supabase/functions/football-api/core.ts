@@ -22,7 +22,7 @@ export async function mutate(s:State,b:any,device:string,adminHash:string,ipHash
  const entry=s.attempts[ipHash]??{count:0,until:now+15*60000},global=s.attempts.global??{count:0,until:now+15*60000};
  if(entry.count>=8||global.count>=60)return {error:'יותר מדי ניסיונות כניסה. נסה שוב בעוד רבע שעה',status:429};
  entry.count++;global.count++;s.attempts[ipHash]=entry;s.attempts.global=global;
- const user=s.accounts.find(x=>x.name===clean(b.username));if(!user||typeof b.password!=='string'||b.password.length>128||await passwordHash(b.password,user.salt)!==user.hash)return {error:'שם המשתמש או הסיסמה שגויים',status:401};
+ const user=s.accounts.find(x=>x.name.includes('@')?x.name.toLowerCase()===clean(b.username).toLowerCase():x.name===clean(b.username));if(!user||typeof b.password!=='string'||b.password.length>128||await passwordHash(b.password,user.salt)!==user.hash)return {error:'שם המשתמש או הסיסמה שגויים',status:401};
  const token=crypto.randomUUID()+crypto.randomUUID();s.sessions.push({hash:await hash(token),account:user.id,expires:now+12*3600000});delete s.attempts[ipHash];return {token};
  }
  if(b.action==='logout'){s.sessions=s.sessions.filter(x=>x.hash!==adminHash);return {logout:true}}
