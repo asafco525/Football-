@@ -64,5 +64,14 @@ await act('publishTeams',{expectedTeams:x.game.teams});const paidId=x.game.queue
 await act('paid',{id:paidId,paid:false});assert(!x.game.paid[paidId]);
 await act('create',{date:'2026-12-01',time:'20:00',place:'דריבל'});assert.equal(Object.keys(project(x,'',admin).game.paid).length,0);assert.equal(project(x,'','').game.teams,null);
 console.log('PASS: payment privacy/validation, manual confirmations, canceled payments, new game reset, draft privacy, publishing, swaps, stale edits and roster invalidation');
+const del=structuredClone(s);const target=del.players[0];del.game.queue=[target.id];
+await assert.rejects(()=>mutate(del,{action:'deletePlayer',id:target.id},'visitor','','ip'));
+await assert.rejects(()=>mutate(del,{action:'deletePlayer',id:target.id},'owner',admin,'ip'));
+del.game.queue=[];del.game.paid={[target.id]:true};
+await assert.rejects(()=>mutate(del,{action:'deletePlayer',id:target.id},'owner',admin,'ip'));
+del.game.paid[target.id]=false;del.history=[{...structuredClone(del.game),queue:[target.id]}];
+await mutate(del,{action:'deletePlayer',id:target.id},'owner',admin,'ip');
+assert(!del.players.some(p=>p.id===target.id));assert.equal(del.history[0].playerNames[target.id],target.name);assert(!project(del,'','').players.some(p=>p.id===target.id));
+console.log('PASS: player deletion permissions, active/payment guards, history preservation');
 await mutate(s,{action:'logout'},'x',admin,'ip');assert(!project(s,'',admin).admin);
 console.log('PASS: '+count+' distributions; FIFO; duplicate protection; access control; privacy; manager revocation; rate limits; logout');
